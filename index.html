@@ -1,0 +1,846 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#261E19">
+<title>Kai-kaos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --red:#9E2A2F;--black:#261E19;--off:#F5F3F1;--blue:#24608B;--teal:#2EAC8C;
+  --yellow:#F9B233;--orange:#EB5C3B;--grey:#938E89;--char:#474842;--green:#61AA33;
+}
+html,body{margin:0;height:100%;background:var(--black);overflow:hidden;touch-action:none;
+  overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+  font-family:Raleway,Arial,sans-serif;color:var(--off)}
+#wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+#stage{position:relative;overflow:hidden;box-shadow:0 0 60px rgba(0,0,0,.5)}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:2em 1.6em;box-sizing:border-box;background:rgba(38,30,25,.9);text-align:center;gap:.6em}
+.hidden{display:none!important}
+.kicker{font-weight:700;letter-spacing:.18em;font-size:.8em;color:var(--yellow)}
+h1{font-weight:800;font-size:3.8em;margin:0;line-height:1;letter-spacing:-.02em}
+.lead{font-weight:300;font-size:1.15em;line-height:1.4;margin:.2em 0 .6em;max-width:22em}
+.steps{list-style:none;padding:0;margin:0 0 1em;text-align:left;display:flex;flex-direction:column;gap:.7em;max-width:22em}
+.steps li{display:flex;gap:.8em;align-items:center;font-weight:300;font-size:1.05em;line-height:1.3}
+.steps li span.n{flex:none;width:2em;height:2em;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-weight:700;background:var(--off);color:var(--black)}
+.steps b{font-weight:700}
+.btn{font-family:inherit;font-weight:700;font-size:1.4em;border:0;border-radius:.4em;padding:.6em 2.2em;
+  background:var(--red);color:var(--off);cursor:pointer;touch-action:manipulation}
+.btn:active{transform:scale(.97)}
+.btn.ghost{background:transparent;border:2px solid var(--off)}
+.btn.small{font-size:1em;padding:.55em 1.2em}
+.row{display:flex;gap:.8em;margin-top:.6em}
+.hs{font-size:.95em;min-width:16em;margin-top:.6em}
+.hs h3{font-size:.75em;letter-spacing:.18em;font-weight:700;color:var(--yellow);margin:0 0 .4em}
+.hs ol{margin:0;padding:0;list-style:none}
+.hs li{display:flex;justify-content:space-between;gap:1em;padding:.22em .4em;border-bottom:1px solid rgba(245,243,241,.12);font-weight:500}
+.hs li.me{background:rgba(249,178,51,.2);border-radius:.3em}
+.hs li .p{font-weight:700}
+.big{font-weight:800;font-size:4.4em;line-height:1}
+.sub{font-weight:500;margin-top:-.4em;opacity:.8}
+.stats{display:flex;gap:1.6em;margin:.6em 0}
+.stats div{display:flex;flex-direction:column}
+.stats b{font-size:1.7em;font-weight:800;color:var(--teal)}
+.stats span{font-size:.8em;font-weight:500;opacity:.85}
+.fact{font-weight:300;font-size:.95em;line-height:1.4;max-width:22em;margin:.2em 0;opacity:.9}
+.fine{font-size:.7em;opacity:.55;font-weight:300;max-width:26em}
+form{display:flex;gap:.5em;margin-top:.4em}
+input{font-family:inherit;font-size:1.1em;padding:.5em .7em;border-radius:.4em;border:0;width:9em;
+  background:var(--off);color:var(--black);font-weight:600;touch-action:manipulation}
+#logo{position:absolute;right:1.2em;bottom:1.2em;max-width:9em;max-height:4em}
+</style>
+</head>
+<body>
+<div id="wrap"><div id="stage">
+  <canvas id="c"></canvas>
+
+  <div id="start" class="screen">
+    <div class="kicker">LANDSTRØM-SPILLET</div>
+    <h1>Kai-kaos</h1>
+    <p class="lead">Los skipene trygt til kai og koble dem til landstrøm – før eksosen legger seg over byen.</p>
+    <ol class="steps">
+      <li><span class="n">1</span><span><b>Dra</b> en strek fra skipet til kaien med samme farge.</span></li>
+      <li><span class="n">2</span><span><b>Trykk</b> på skipet ved kai for å koble til landstrøm.</span></li>
+      <li><span class="n">3</span><span>Trafoen tåler <b>10&nbsp;MW</b>. Du må velge hvem som får strøm!</span></li>
+    </ol>
+    <button id="btnStart" class="btn">Start</button>
+    <div id="hsStart" class="hs"></div>
+    <img id="logo" src="assets/logo.svg" alt="" onerror="this.remove()">
+  </div>
+
+  <div id="end" class="screen hidden">
+    <div class="kicker" id="endReason">TIDEN ER UTE</div>
+    <div class="big" id="endScore">0</div>
+    <div class="sub">poeng</div>
+    <div class="stats">
+      <div><b id="stCo2">0</b><span>kg CO₂ spart</span></div>
+      <div><b id="stCars">0</b><span>bilturer Bodø–Fauske</span></div>
+    </div>
+    <p class="fact" id="fact"></p>
+    <form id="nameForm"><input id="name" maxlength="12" placeholder="Ditt navn" autocomplete="off" enterkeyhint="done"><button class="btn small" type="submit">Lagre</button></form>
+    <div id="hsEnd" class="hs"></div>
+    <div class="row"><button id="btnAgain" class="btn">Spill igjen</button><button id="btnShare" class="btn ghost">Del</button></div>
+    <p class="fine">1 sekund i spillet ≈ 1 minutt i havna. CO₂-tall er forenklede anslag (dieselaggregat ca. 0,7 kg CO₂/kWh, fossilbil ca. 0,12 kg/km).</p>
+  </div>
+</div></div>
+
+<script>
+'use strict';
+// ---------- Konstanter ----------
+const W = 540, H = 960, KAI_X = 120, TOP_Y = 72, TRAFO = 10, ROUND = 90;
+const MOLO = {x: 300, y: 744, w: 260, h: 24};
+const ISLET = {x: 410, y: 500, r: 30};
+const KG_PER_MWS = 11.7;          // 1 s spill = 1 min; 0,7 kg CO2 per kWh fra dieselaggregat
+const KG_PER_TRIP = 7.6;          // Bodø–Fauske ~63 km * 0,12 kg/km
+const C = {red:'#9E2A2F', black:'#261E19', off:'#F5F3F1', blue:'#24608B', teal:'#2EAC8C', yellow:'#F9B233',
+  orange:'#EB5C3B', grey:'#938E89', char:'#474842', lgrey:'#DFDED9', bluegrey:'#9BA8C2', mint:'#AED6C5',
+  green:'#61AA33', peach:'#F7B398', lyellow:'#FED9A0'};
+const TYPES = {
+  cruise:{key:'cruise', name:'Cruiseskip', len:168, wid:40, speed:44, turn:1.15, mw:7, stay:26, smoke:2.6, tag:C.yellow, funnel:-0.18},
+  ferry: {key:'ferry',  name:'Elferje',    len:104, wid:32, speed:66, turn:1.9,  mw:4, stay:17, smoke:1.4, tag:C.teal,   funnel:0.05},
+  fish:  {key:'fish',   name:'Fiskebåt',   len:56,  wid:20, speed:90, turn:3.2,  mw:1, stay:13, smoke:0.6, tag:C.orange, funnel:-0.28},
+};
+const BERTHS = [
+  {y0:88,  y1:292, type:'cruise', label:'CRUISE'},
+  {y0:326, y1:456, type:'ferry',  label:'ELFERJE'},
+  {y0:496, y1:586, type:'fish',   label:'FISK'},
+  {y0:616, y1:706, type:'fish',   label:'FISK'},
+];
+BERTHS.forEach(b => { b.cy = (b.y0 + b.y1) / 2; b.ship = null; });
+const SLOTS = [{x:290,y:850},{x:450,y:850},{x:290,y:924},{x:450,y:924}];
+const EXIT_X = 170;
+const FACTS = [
+  'Skip ved kai trenger strøm til lys, varme, kjøling og pumper. Uten landstrøm lages den med dieselaggregat.',
+  'Med landstrøm kan motorene stå stille ved kai: mindre støy, eksos og CO₂ midt i byen.',
+  'Batteriferjer må lade mye på kort tid. Derfor er kapasiteten i strømnettet på kaia avgjørende.',
+  'Et stort cruiseskip kan trenge flere megawatt ved kai – omtrent som flere tusen boliger samtidig.',
+];
+
+// ---------- Oppsett ----------
+const stage = document.getElementById('stage');
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+let scale = 1, dpr = 1;
+function resize() {
+  scale = Math.min(innerWidth / W, innerHeight / H);
+  const sw = Math.floor(W * scale), sh = Math.floor(H * scale);
+  stage.style.width = sw + 'px'; stage.style.height = sh + 'px';
+  stage.style.fontSize = (16 * scale) + 'px';
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width = Math.round(sw * dpr); cv.height = Math.round(sh * dpr);
+}
+addEventListener('resize', resize); resize();
+
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const angDiff = (a, b) => { let d = a - b; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return d; };
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+// ---------- Lyd ----------
+let AC = null;
+function snd(kind) {
+  try {
+    if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === 'suspended') AC.resume();
+    const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
+    o.connect(g); g.connect(AC.destination);
+    const P = {
+      plug:   ['square',   440, 880, .12, .05], unplug:['square', 600, 300, .12, .04],
+      deny:   ['square',   160, 140, .22, .06], crash: ['sawtooth', 140, 40, .35, .09],
+      horn:   ['sine',     98,  92,  .7,  .12], dock:  ['triangle', 520, 660, .12, .07],
+      bonus:  ['triangle', 660, 1320,.25, .07], spawn: ['sine', 140, 130, .35, .05],
+    }[kind];
+    if (!P) return;
+    o.type = P[0]; o.frequency.setValueAtTime(P[1], t); o.frequency.exponentialRampToValueAtTime(P[2], t + P[3]);
+    g.gain.setValueAtTime(P[4], t); g.gain.exponentialRampToValueAtTime(0.0001, t + P[3]);
+    o.start(t); o.stop(t + P[3] + .02);
+  } catch (e) {}
+}
+
+// ---------- Spilltilstand ----------
+let mode = 'start';  // start | play | end
+let game = null;
+let lastInput = performance.now();
+
+function newGame() {
+  BERTHS.forEach(b => b.ship = null);
+  game = {t:0, ships:[], parts:[], floats:[], co2:0, bonus:0, air:100, spawnT:1, spawnN:0,
+    hint:'drag', hintT:0, shake:0, trafoFlash:0, lastCrash:-9, idc:0, overloadTold:false};
+}
+
+function aliveOf(k) { return game.ships.filter(s => s.T.key === k && s.state !== 'departing').length; }
+function slotFree(sl) {
+  for (const s of game.ships) {
+    if (s.state === 'departing' || s.state === 'docked' || s.state === 'docking') continue;
+    if (s.state === 'entering' && s.slot === sl) return false;
+    if (Math.hypot(s.x - sl.x, s.y - sl.y) < s.T.len / 2 + 70) return false;
+  }
+  return true;
+}
+function trySpawn() {
+  const opts = [];
+  if (aliveOf('fish') < 3) opts.push('fish', 'fish');
+  if (aliveOf('ferry') < 1) opts.push('ferry');
+  if (aliveOf('cruise') < 1) opts.push('cruise');
+  const forced = ['fish', 'ferry', 'cruise'][game.spawnN];
+  const k = forced && opts.includes(forced) ? forced : opts[Math.random() * opts.length | 0];
+  if (!k) return false;
+  const T = TYPES[k];
+  // Cruiseskip er for langt for den høyre plassen – bruk venstre
+  let free = SLOTS.filter(slotFree);
+  if (!free.length) return false;
+  const sl = free[Math.random() * free.length | 0];
+  game.ships.push({id:++game.idc, T, x:W + T.len / 2 + 20, y:sl.y, h:Math.PI, v:T.speed * .8, state:'entering',
+    slot:sl, path:[], berth:null, connected:false, stay:T.stay, charge:k === 'ferry' ? .15 : 1, cableT:0,
+    smokeAcc:0, popAcc:0, connTime:0, ignore:new Set(), wallIgnore:false, dock:null, flash:0});
+  game.spawnN++; snd('spawn');
+  return true;
+}
+
+// ---------- Geometri ----------
+function circles(s) {
+  const T = s.T, n = Math.max(1, Math.round(T.len / T.wid)), r = T.wid / 2, L = T.len / 2 - r, res = [];
+  for (let i = 0; i < n; i++) {
+    const t = n === 1 ? 0 : -L + 2 * L * i / (n - 1);
+    res.push({x:s.x + Math.cos(s.h) * t, y:s.y + Math.sin(s.h) * t, r:r * .92});
+  }
+  return res;
+}
+function circRect(c, R) {
+  const nx = clamp(c.x, R.x, R.x + R.w), ny = clamp(c.y, R.y, R.y + R.h);
+  return Math.hypot(c.x - nx, c.y - ny) < c.r;
+}
+function wallHit(s) {
+  for (const c of circles(s)) {
+    if (c.x - c.r < KAI_X || c.y - c.r < TOP_Y || c.x + c.r > W || c.y > H + 60) return true;   // åpent hav nederst
+    if (circRect(c, MOLO)) return true;
+    if (Math.hypot(c.x - ISLET.x, c.y - ISLET.y) < c.r + ISLET.r) return true;
+  }
+  return false;
+}
+function shipsOverlap(a, b) {
+  if (Math.hypot(a.x - b.x, a.y - b.y) > (a.T.len + b.T.len) / 2) return false;
+  const ca = circles(a), cb = circles(b);
+  for (const p of ca) for (const q of cb) if (Math.hypot(p.x - q.x, p.y - q.y) < p.r + q.r) return true;
+  return false;
+}
+function hitShip(x, y) {
+  let best = null, bd = 1e9;
+  for (const s of game.ships) {
+    if (s.state === 'departing') continue;
+    const hl = s.T.len / 2, cx = Math.cos(s.h), sy = Math.sin(s.h);
+    const dx = x - s.x, dy = y - s.y, along = clamp(dx * cx + dy * sy, -hl, hl);
+    const d = Math.hypot(dx - along * cx, dy - along * sy);
+    if (d < s.T.wid / 2 + 18 && d < bd) { bd = d; best = s; }
+  }
+  return best;
+}
+function berthAt(x, y) {
+  if (x > KAI_X + 120 || x < KAI_X - 30) return null;
+  return BERTHS.find(b => y >= b.y0 - 6 && y <= b.y1 + 6) || null;
+}
+function berthValid(b, s) { return b && b.type === s.T.key && (b.ship === null || b.ship === s); }
+function funnelPos(s) {
+  const o = s.T.len * s.T.funnel;
+  return {x:s.x + Math.cos(s.h) * o, y:s.y + Math.sin(s.h) * o};
+}
+
+// ---------- Effekter ----------
+function float(x, y, text, color, size) { game.floats.push({x, y, text, color:color || C.off, t:0, dur:1.6, size:size || 18}); }
+function puff(x, y, n, kind) {
+  for (let i = 0; i < n; i++) {
+    if (kind === 'smoke') game.parts.push({kind, x:x + (Math.random() - .5) * 4, y, vx:-22 - Math.random() * 14, vy:-6 - Math.random() * 8,
+      r:4 + Math.random() * 3, life:0, max:3 + Math.random() * 1.5});
+    else game.parts.push({kind, x, y, vx:(Math.random() - .5) * 160, vy:(Math.random() - .5) * 160, r:2 + Math.random() * 2, life:0, max:.5 + Math.random() * .4});
+  }
+}
+
+// ---------- Handlinger ----------
+function releaseBerth(s) {
+  if (s.berth && s.berth.ship === s && s.state !== 'docked' && s.state !== 'docking') s.berth.ship = null;
+  if (s.state !== 'docked' && s.state !== 'docking') s.berth = null;
+}
+function stopShip(s) { releaseBerth(s); s.state = 'idle'; s.path = []; s.v = 0; }
+function crash(s, msg, pts) {
+  if (game.t - game.lastCrash > .8) {
+    game.bonus -= pts; game.lastCrash = game.t; game.shake = 10; snd('crash');
+    float(s.x, s.y - 30, msg + ' −' + pts, C.orange, 22);
+    puff(s.x, s.y, 14, 'spark');
+  }
+}
+function startDocking(s) {
+  const b = s.berth, th = Math.abs(angDiff(-Math.PI / 2, s.h)) < Math.abs(angDiff(Math.PI / 2, s.h)) ? -Math.PI / 2 : Math.PI / 2;
+  s.state = 'docking'; s.path = [];
+  s.dock = {fx:s.x, fy:s.y, fh:s.h, tx:KAI_X + s.T.wid / 2 + 6, ty:b.cy, th, t:0};
+}
+function shipLoad(s, assume) {
+  if (!(s.connected || assume)) return 0;
+  if (s.T.key === 'ferry' && s.charge >= 1) return .5;
+  return s.T.mw;
+}
+function currentLoad() { return game.ships.reduce((a, s) => a + (s.state === 'docked' && s.connected ? shipLoad(s) : 0), 0); }
+function toggleConn(s) {
+  if (s.state !== 'docked') return;
+  if (s.connected) { s.connected = false; snd('unplug'); float(s.x + 40, s.y, 'Frakoblet', C.lgrey, 15); return; }
+  const need = shipLoad(s, true);
+  if (currentLoad() + need > TRAFO + 1e-6) {
+    game.trafoFlash = 1; snd('deny');
+    float(330, 110, game.overloadTold ? 'Trafoen er full!' : 'Trafoen er full! Koble fra et skip', C.orange, 18);
+    game.overloadTold = true;
+    return;
+  }
+  s.connected = true; s.cableT = 0; snd('plug'); puff(KAI_X - 12, s.berth.cy, 8, 'spark');
+  if (game.hint === 'tap') { game.hint = 'trafo'; game.hintT = 5; }
+}
+function depart(s) {
+  const b = s.berth; if (b) b.ship = null;
+  if (s.T.key === 'ferry') {
+    if (s.charge >= .999) { game.bonus += 200; float(s.x + 40, s.y - 20, 'Fulladet! +200', C.teal, 22); snd('bonus'); }
+    else { game.air -= 8; float(s.x + 40, s.y - 20, 'Ferja gikk på diesel', C.orange, 18); }
+  }
+  if (s.connTime / s.T.stay >= .6) { game.bonus += 50; float(s.x + 40, s.y + 10, 'Grønt anløp +50', C.green, 18); }
+  s.connected = false; s.berth = null; s.state = 'departing';
+  const dy = s.h < 0 ? -12 : 12;
+  s.path = [{x:KAI_X + 110, y:s.y + dy}, {x:EXIT_X + 20, y:700}, {x:EXIT_X, y:820}, {x:EXIT_X, y:1150}];
+  snd('horn');
+}
+function endGame(reason) {
+  mode = 'end'; game.endReason = reason;
+  showEnd();
+}
+
+// ---------- Oppdatering ----------
+function steer(s, dt, turnMul) {
+  const T = s.T;
+  while (s.path.length) {
+    const p = s.path[0], d = dist(s, p);
+    const desired = Math.atan2(p.y - s.y, p.x - s.x), da = Math.abs(angDiff(desired, s.h));
+    const radius = Math.max(s.v, 10) / (T.turn * turnMul);
+    if (d < 16 || (d < radius * 1.3 && da > 1.1 && s.path.length > 1)) s.path.shift(); else break;
+  }
+  if (s.path.length) {
+    const p = s.path[0], desired = Math.atan2(p.y - s.y, p.x - s.x), d = angDiff(desired, s.h), mt = T.turn * turnMul * dt;
+    s.h += clamp(d, -mt, mt);
+    // Store kursendringer: sakk farten og snu krapt (baugpropell)
+    const ad = Math.abs(d), target = T.speed * (ad > 1.0 ? .25 : ad > .5 ? .55 : 1);
+    s.v += (target - s.v) * Math.min(1, dt * 1.6);
+  } else {
+    s.v = Math.max(0, s.v - T.speed * 1.5 * dt);
+  }
+  s.x += Math.cos(s.h) * s.v * dt; s.y += Math.sin(s.h) * s.v * dt;
+}
+
+function update(dt) {
+  const g = game;
+  g.t += dt;
+  if (g.t >= ROUND) { endGame('time'); return; }
+
+  // Nye skip
+  g.spawnT -= dt;
+  if (g.spawnT <= 0) {
+    const iv = g.t < 15 ? 7.5 : Math.max(4.2, 7.5 - (g.t - 15) * .05);
+    g.spawnT = trySpawn() ? iv : 1;
+  }
+
+  let emission = 0;
+  for (const s of g.ships) {
+    const T = s.T;
+    s.flash = Math.max(0, s.flash - dt);
+    if (s.state === 'entering') {
+      s.x -= s.v * dt;
+      if (s.x <= s.slot.x) { s.x = s.slot.x; s.state = 'idle'; s.v = 0; s.slot = null; }
+      emission += .6;
+    } else if (s.state === 'idle') {
+      s.v = 0; emission += .6;
+    } else if (s.state === 'sailing') {
+      steer(s, dt, 1);
+      if (s.berth) {
+        const b = s.berth;
+        if ((s.x < KAI_X + T.wid / 2 + 95 && s.y > b.y0 - 12 && s.y < b.y1 + 12) || (!s.path.length && dist(s, {x:KAI_X + 40, y:b.cy}) < 140)) {
+          startDocking(s); continue;
+        }
+      }
+      if (!s.path.length && s.v < 2) { stopShip(s); continue; }
+      const wh = wallHit(s);
+      if (s.wallIgnore) { if (!wh) s.wallIgnore = false; }
+      else if (wh) {
+        s.x -= Math.cos(s.h) * 10; s.y -= Math.sin(s.h) * 10;
+        stopShip(s); s.wallIgnore = true; crash(s, 'Grunnstøtt!', 50);
+      }
+    } else if (s.state === 'docking') {
+      const d = s.dock; d.t = Math.min(1, d.t + dt / 1.2);
+      const e = 1 - Math.pow(1 - d.t, 3);
+      s.x = d.fx + (d.tx - d.fx) * e; s.y = d.fy + (d.ty - d.fy) * e; s.h = d.fh + angDiff(d.th, d.fh) * e;
+      emission += T.smoke * .5;
+      if (d.t >= 1) {
+        s.state = 'docked'; s.v = 0; s.berth.ship = s; snd('dock');
+        g.bonus += 25; float(s.x + 50, s.y, 'Til kai +25', C.off, 17);
+        if (g.hint === 'drag') g.hint = 'tap';
+      }
+    } else if (s.state === 'docked') {
+      s.stay -= dt;
+      if (s.connected) {
+        s.connTime += dt;
+        s.cableT = Math.min(1, s.cableT + dt * 3);
+        if (T.key === 'ferry' && s.charge < 1) { s.charge = Math.min(1, s.charge + dt / 8); if (s.charge >= 1) float(s.x + 50, s.y - 30, 'Batteri fullt', C.teal, 16); }
+        const kg = shipLoad(s) * KG_PER_MWS * dt;
+        g.co2 += kg; s.popAcc += kg;
+        if (s.popAcc >= 60) { float(s.x + s.T.wid / 2 + 44, s.y - 40, '+' + Math.round(s.popAcc) + ' kg CO₂', C.mint, 15); s.popAcc = 0; }
+      } else emission += T.smoke;
+      if (s.stay <= 0) depart(s);
+    } else if (s.state === 'departing') {
+      steer(s, dt, 1.6);
+    }
+    // Røyk
+    const smoky = (s.state === 'docked' && !s.connected) ? T.smoke * 3 : (s.state === 'idle' || s.state === 'entering') ? 1.2 : (s.state === 'docking' ? T.smoke : (s.state === 'sailing' || s.state === 'departing') ? .8 : 0);
+    s.smokeAcc += smoky * dt;
+    while (s.smokeAcc >= 1) { s.smokeAcc -= 1; const f = funnelPos(s); puff(f.x, f.y, 1, 'smoke'); }
+  }
+  g.ships = g.ships.filter(s => s.y < H + 160);
+
+  // Kollisjoner mellom skip
+  const solid = g.ships.filter(s => s.state === 'sailing' || s.state === 'idle' || s.state === 'docked' || s.state === 'docking');
+  for (let i = 0; i < solid.length; i++) for (let j = i + 1; j < solid.length; j++) {
+    const a = solid[i], b = solid[j];
+    if (a.state !== 'sailing' && b.state !== 'sailing') continue;
+    const ov = shipsOverlap(a, b);
+    const ign = a.ignore.has(b.id) || b.ignore.has(a.id);
+    if (!ov) { a.ignore.delete(b.id); b.ignore.delete(a.id); continue; }
+    if (ign) continue;
+    for (const s of [a, b]) if (s.state === 'sailing') {
+      const o = s === a ? b : a, ang = Math.atan2(s.y - o.y, s.x - o.x);
+      s.x += Math.cos(ang) * 8; s.y += Math.sin(ang) * 8;
+      stopShip(s);
+    }
+    a.ignore.add(b.id); b.ignore.add(a.id);
+    crash(a.state === 'idle' ? a : b, 'Kollisjon!', 100);
+  }
+
+  // Byluft
+  g.air = clamp(g.air + (1.2 - emission) * dt, 0, 100);
+  if (g.air <= 0) { endGame('air'); return; }
+
+  // Partikler og tekster
+  for (const p of g.parts) { p.life += dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.kind === 'smoke') { p.r += 6 * dt; p.vx *= .995; } else { p.vx *= .9; p.vy *= .9; } }
+  g.parts = g.parts.filter(p => p.life < p.max);
+  for (const f of g.floats) { f.t += dt; f.y -= 22 * dt; }
+  g.floats = g.floats.filter(f => f.t < f.dur);
+  g.shake = Math.max(0, g.shake - dt * 30);
+  g.trafoFlash = Math.max(0, g.trafoFlash - dt * 1.5);
+  if (g.hint === 'trafo') { g.hintT -= dt; if (g.hintT <= 0) g.hint = null; }
+}
+
+// ---------- Input ----------
+let drag = null;
+function toWorld(e) { const r = cv.getBoundingClientRect(); return {x:(e.clientX - r.left) / scale, y:(e.clientY - r.top) / scale}; }
+cv.addEventListener('pointerdown', e => {
+  lastInput = performance.now();
+  if (mode !== 'play') return;
+  e.preventDefault();
+  const p = toWorld(e), s = hitShip(p.x, p.y);
+  if (!s) return;
+  cv.setPointerCapture(e.pointerId);
+  drag = {ship:s, pts:[{x:s.x, y:s.y}], start:p, moved:false, id:e.pointerId, end:p};
+});
+cv.addEventListener('pointermove', e => {
+  if (!drag || e.pointerId !== drag.id) return;
+  const p = toWorld(e);
+  p.x = clamp(p.x, KAI_X + 4, W - 4); p.y = clamp(p.y, TOP_Y + 4, H + 20);
+  drag.end = p;
+  if (dist(p, drag.start) > 12) drag.moved = true;
+  const last = drag.pts[drag.pts.length - 1];
+  if (dist(p, last) > 10) drag.pts.push(p);
+});
+function endDrag(e) {
+  if (!drag || e.pointerId !== drag.id) return;
+  lastInput = performance.now();
+  const s = drag.ship;
+  if (mode === 'play' && game.ships.includes(s)) {
+    if (!drag.moved) {
+      if (s.state === 'docked') toggleConn(s);
+      else s.flash = .4;
+    } else if (s.state !== 'docked' && s.state !== 'docking' && s.state !== 'departing' && drag.pts.length > 1) {
+      releaseBerth(s);
+      const end = drag.pts[drag.pts.length - 1], b = berthAt(end.x, end.y);
+      s.berth = berthValid(b, s) ? b : null;
+      if (s.berth) s.berth.ship = s;
+      s.path = drag.pts.slice(1);
+      s.state = 'sailing'; s.slot = null;
+      if (s.v < 10) s.v = 10;
+      s.ignore = new Set(game.ships.filter(o => o !== s && shipsOverlap(s, o)).map(o => o.id));
+      s.wallIgnore = wallHit(s);
+    }
+  }
+  drag = null;
+}
+cv.addEventListener('pointerup', endDrag);
+cv.addEventListener('pointercancel', endDrag);
+addEventListener('contextmenu', e => e.preventDefault());
+
+// ---------- Tegning ----------
+function rr(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h); }
+function font(w, s) { ctx.font = `${w} ${s}px Raleway, Arial, sans-serif`; }
+function bolt(x, y, s, col) {
+  ctx.fillStyle = col; ctx.beginPath();
+  ctx.moveTo(x + .1 * s, y - .5 * s); ctx.lineTo(x - .3 * s, y + .08 * s); ctx.lineTo(x - .02 * s, y + .08 * s);
+  ctx.lineTo(x - .12 * s, y + .5 * s); ctx.lineTo(x + .3 * s, y - .1 * s); ctx.lineTo(x + .02 * s, y - .1 * s); ctx.closePath(); ctx.fill();
+}
+
+// Deterministisk by
+const HOUSES = (() => {
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const roofs = [C.red, C.yellow, C.off, C.orange, C.bluegrey, C.peach], res = [];
+  for (let y = TOP_Y + 14; y < H - 30; y += 44 + rnd() * 10) {
+    let x = 6;
+    while (x < 84) {
+      const w = 22 + rnd() * 16; if (x + w > 92) break;
+      res.push({x, y, w, h:22 + rnd() * 10, roof:roofs[rnd() * roofs.length | 0]});
+      x += w + 4 + rnd() * 6;
+    }
+  }
+  return res;
+})();
+
+function drawBackground(t) {
+  // Hav
+  const sg = ctx.createLinearGradient(0, TOP_Y, 0, H);
+  sg.addColorStop(0, '#2a6b98'); sg.addColorStop(1, '#1b4c70');
+  ctx.fillStyle = sg; ctx.fillRect(0, 0, W, H);
+  // Bølger
+  ctx.strokeStyle = 'rgba(245,243,241,.10)'; ctx.lineWidth = 2;
+  for (let i = 0; i < 26; i++) {
+    const x = (i * 97 + t * 8) % (W - KAI_X) + KAI_X, y = TOP_Y + 20 + (i * 151) % (H - TOP_Y - 30);
+    ctx.beginPath(); ctx.arc(x, y, 10, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke();
+  }
+  // Land og by
+  ctx.fillStyle = '#5b5a52'; ctx.fillRect(0, 0, KAI_X, H);
+  ctx.fillStyle = C.lgrey; ctx.fillRect(96, TOP_Y, KAI_X - 96, H);
+  ctx.fillStyle = C.grey; ctx.fillRect(KAI_X - 4, TOP_Y, 4, H);
+  for (const h of HOUSES) {
+    ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fillRect(h.x + 3, h.y + 3, h.w, h.h);
+    ctx.fillStyle = h.roof; ctx.fillRect(h.x, h.y, h.w, h.h);
+    ctx.fillStyle = 'rgba(0,0,0,.15)'; ctx.fillRect(h.x, h.y + h.h / 2, h.w, h.h / 2);
+  }
+  // Fortøyningspullerter
+  ctx.fillStyle = C.char;
+  for (let y = TOP_Y + 20; y < H; y += 40) { ctx.beginPath(); ctx.arc(KAI_X - 6, y, 2.5, 0, 7); ctx.fill(); }
+  // Kaiplasser
+  for (const b of BERTHS) {
+    const T = TYPES[b.type], w = T.wid + 18;
+    ctx.save();
+    ctx.setLineDash([8, 6]); ctx.lineWidth = 2.5; ctx.strokeStyle = T.tag; ctx.globalAlpha = .9;
+    ctx.strokeRect(KAI_X + 2, b.y0, w, b.y1 - b.y0);
+    ctx.setLineDash([]); ctx.globalAlpha = .18; ctx.fillStyle = T.tag; ctx.fillRect(KAI_X + 2, b.y0, w, b.y1 - b.y0);
+    ctx.globalAlpha = 1;
+    ctx.translate(KAI_X + 2 + w / 2, b.cy); ctx.rotate(-Math.PI / 2);
+    font(800, 12); ctx.fillStyle = T.tag; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(b.label, 0, 0);
+    ctx.restore();
+    // Landstrømskap
+    const cw = b.type === 'fish' ? 14 : 18, ch = b.type === 'fish' ? 18 : 26;
+    rr(KAI_X - 14 - cw / 2, b.cy - ch / 2, cw, ch, 3); ctx.fillStyle = C.black; ctx.fill();
+    bolt(KAI_X - 14, b.cy, ch * .6, b.ship && b.ship.connected ? C.teal : C.yellow);
+  }
+  // Molo
+  ctx.fillStyle = C.grey; rr(MOLO.x, MOLO.y, MOLO.w, MOLO.h, 12); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.fillRect(MOLO.x + 10, MOLO.y + 3, MOLO.w, 5);
+  ctx.fillStyle = C.red; ctx.beginPath(); ctx.arc(MOLO.x + 10, MOLO.y + 12, 6, 0, 7); ctx.fill();
+  // Skjær med fyr
+  ctx.fillStyle = C.char; ctx.beginPath(); ctx.ellipse(ISLET.x, ISLET.y, ISLET.r, ISLET.r * .85, .3, 0, 7); ctx.fill();
+  ctx.fillStyle = C.grey; ctx.beginPath(); ctx.ellipse(ISLET.x - 4, ISLET.y - 4, ISLET.r * .6, ISLET.r * .45, .3, 0, 7); ctx.fill();
+  ctx.fillStyle = C.off; ctx.beginPath(); ctx.arc(ISLET.x + 2, ISLET.y - 2, 6, 0, 7); ctx.fill();
+  ctx.fillStyle = C.red; ctx.beginPath(); ctx.arc(ISLET.x + 2, ISLET.y - 2, 3, 0, 7); ctx.fill();
+}
+
+function hull(L, Wd) {
+  const hl = L / 2, hw = Wd / 2;
+  ctx.beginPath(); ctx.moveTo(-hl + 5, -hw); ctx.lineTo(hl - Wd * .9, -hw);
+  ctx.quadraticCurveTo(hl - Wd * .1, -hw * .8, hl, 0); ctx.quadraticCurveTo(hl - Wd * .1, hw * .8, hl - Wd * .9, hw);
+  ctx.lineTo(-hl + 5, hw); ctx.quadraticCurveTo(-hl, hw, -hl, hw - 5); ctx.lineTo(-hl, -hw + 5); ctx.quadraticCurveTo(-hl, -hw, -hl + 5, -hw);
+  ctx.closePath();
+}
+function drawShip(s) {
+  const T = s.T, L = T.len, Wd = T.wid, lit = s.connected;
+  // Kjølvann
+  if (s.v > 5) {
+    ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.h);
+    ctx.strokeStyle = `rgba(245,243,241,${Math.min(.5, s.v / 120)})`; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(-L / 2, -Wd / 3); ctx.lineTo(-L / 2 - 40, -Wd); ctx.moveTo(-L / 2, Wd / 3); ctx.lineTo(-L / 2 - 40, Wd); ctx.stroke();
+    ctx.restore();
+  }
+  ctx.save(); ctx.translate(s.x + 3, s.y + 4); ctx.rotate(s.h);
+  hull(L, Wd); ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fill(); ctx.restore();
+
+  ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.h);
+  if (s.state === 'departing') ctx.globalAlpha = .85;
+  const win = lit ? C.yellow : '#4b6f8f';
+  if (T.key === 'cruise') {
+    hull(L, Wd); ctx.fillStyle = C.off; ctx.fill(); ctx.strokeStyle = C.blue; ctx.lineWidth = 3; ctx.stroke();
+    rr(-L / 2 + 10, -Wd / 2 + 6, L - 52, Wd - 12, 6); ctx.fillStyle = C.lgrey; ctx.fill();
+    ctx.fillStyle = win;
+    for (let x = -L / 2 + 16; x < L / 2 - 46; x += 9) { ctx.fillRect(x, -Wd / 2 + 8, 5, 4); ctx.fillRect(x, Wd / 2 - 12, 5, 4); }
+    ctx.fillStyle = C.teal; rr(-L / 2 + 12, -6, 22, 12, 3); ctx.fill();
+    ctx.fillStyle = C.red; ctx.beginPath(); ctx.ellipse(L * T.funnel, 0, 10, 8, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = C.black; ctx.beginPath(); ctx.ellipse(L * T.funnel, 0, 5, 4, 0, 0, 7); ctx.fill();
+  } else if (T.key === 'ferry') {
+    hull(L, Wd); ctx.fillStyle = C.off; ctx.fill(); ctx.strokeStyle = C.teal; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = C.teal; ctx.fillRect(-L / 2 + 6, -3, L - 30, 6);
+    rr(-14, -Wd / 2 + 4, 34, Wd - 8, 4); ctx.fillStyle = C.lgrey; ctx.fill();
+    ctx.fillStyle = win; for (let x = -10; x < 18; x += 7) { ctx.fillRect(x, -Wd / 2 + 6, 4, 3); ctx.fillRect(x, Wd / 2 - 9, 4, 3); }
+  } else {
+    hull(L, Wd); ctx.fillStyle = C.red; ctx.fill(); ctx.strokeStyle = '#6e1d21'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = C.lgrey; ctx.fillRect(-L / 2 + 22, -Wd / 2 + 4, L / 2 - 10, Wd - 8);
+    rr(-L / 2 + 6, -Wd / 2 + 3, 16, Wd - 6, 2); ctx.fillStyle = C.off; ctx.fill();
+    ctx.fillStyle = win; ctx.fillRect(-L / 2 + 18, -3, 3, 6);
+    ctx.fillStyle = C.black; ctx.beginPath(); ctx.arc(L * T.funnel, 0, 3, 0, 7); ctx.fill();
+  }
+  ctx.restore();
+  if (s.flash > 0) { ctx.strokeStyle = `rgba(245,243,241,${s.flash * 2})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(s.x, s.y, T.len / 2 + 6, 0, 7); ctx.stroke(); }
+}
+
+function drawCable(s) {
+  if (s.state !== 'docked' || !s.connected) return;
+  const b = s.berth, x0 = KAI_X - 14, y0 = b.cy, x1 = s.x - s.T.wid / 2 + 3, y1 = s.y;
+  const e = s.cableT, xe = x0 + (x1 - x0) * e;
+  ctx.strokeStyle = C.black; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo((x0 + xe) / 2, y0 + 14, xe, y1); ctx.stroke();
+  ctx.strokeStyle = C.teal; ctx.lineWidth = 2.5; ctx.setLineDash([4, 6]); ctx.lineDashOffset = -performance.now() / 30;
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo((x0 + xe) / 2, y0 + 14, xe, y1); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(46,172,140,.25)'; ctx.beginPath(); ctx.arc(x0, y0, 16 + Math.sin(performance.now() / 200) * 3, 0, 7); ctx.fill();
+}
+
+function drawShipUI(s, t) {
+  const T = s.T;
+  if (s.state === 'docked') {
+    const x = s.x + T.wid / 2 + 8, y = s.y - 24, w = 70, h = 48;
+    rr(x, y, w, h, 8); ctx.fillStyle = 'rgba(38,30,25,.85)'; ctx.fill();
+    if (!s.connected) { ctx.strokeStyle = `rgba(249,178,51,${.55 + .45 * Math.sin(t * 6)})`; ctx.lineWidth = 2.5; ctx.stroke(); }
+    else { ctx.strokeStyle = C.teal; ctx.lineWidth = 2; ctx.stroke(); }
+    bolt(x + 14, y + 15, 16, s.connected ? C.teal : C.yellow);
+    font(800, 15); ctx.fillStyle = C.off; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    const ld = shipLoad(s, true);
+    ctx.fillText((ld % 1 ? ld.toFixed(1) : ld) + ' MW', x + 26, y + 16);
+    if (T.key === 'ferry') {
+      font(700, 9); ctx.fillStyle = C.lgrey; ctx.fillText('BATTERI', x + 8, y + 31);
+      ctx.fillStyle = '#555'; ctx.fillRect(x + 8, y + 36, w - 16, 6);
+      ctx.fillStyle = s.charge >= 1 ? C.teal : C.yellow; ctx.fillRect(x + 8, y + 36, (w - 16) * s.charge, 6);
+    } else {
+      font(700, 9); ctx.fillStyle = C.lgrey; ctx.fillText(s.connected ? 'PÅ LANDSTRØM' : 'TRYKK FOR STRØM', x + 8, y + 31);
+    }
+    // avgangstid
+    const frac = clamp(s.stay / T.stay, 0, 1);
+    ctx.fillStyle = 'rgba(245,243,241,.25)'; ctx.fillRect(x + 8, y + h - 4, w - 16, 2);
+    ctx.fillStyle = C.off; ctx.fillRect(x + 8, y + h - 4, (w - 16) * frac, 2);
+  } else if (s.state !== 'departing' && s.state !== 'docking') {
+    const ext = Math.abs(Math.sin(s.h)) * T.len / 2 + Math.abs(Math.cos(s.h)) * T.wid / 2;
+    const y = Math.max(TOP_Y + 14, s.y - ext - 16);
+    const label = T.mw + ' MW';
+    font(800, 13); const tw = ctx.measureText(label).width + 16;
+    rr(s.x - tw / 2, y - 10, tw, 20, 10); ctx.fillStyle = T.tag; ctx.fill();
+    ctx.fillStyle = C.black; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(label, s.x, y + 1);
+  }
+}
+
+function drawPath(s, pts, preview) {
+  if (!pts.length) return;
+  const T = s.T;
+  ctx.strokeStyle = T.tag; ctx.globalAlpha = preview ? .95 : .6; ctx.lineWidth = preview ? 4 : 3;
+  ctx.setLineDash([10, 8]); ctx.lineDashOffset = -performance.now() / 40;
+  ctx.beginPath(); ctx.moveTo(s.x, s.y); for (const p of pts) ctx.lineTo(p.x, p.y); ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha = 1;
+  const end = pts[pts.length - 1];
+  if (preview) {
+    const b = berthAt(end.x, end.y), ok = berthValid(b, s);
+    if (b) {
+      ctx.fillStyle = ok ? 'rgba(97,170,51,.35)' : 'rgba(235,92,59,.35)';
+      ctx.fillRect(KAI_X + 2, b.y0, TYPES[b.type].wid + 18, b.y1 - b.y0);
+    }
+    ctx.fillStyle = b ? (ok ? C.green : C.orange) : T.tag;
+    ctx.beginPath(); ctx.arc(end.x, end.y, 9, 0, 7); ctx.fill();
+  } else if (s.berth) {
+    ctx.strokeStyle = C.green; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(end.x, end.y, 8, 0, 7); ctx.stroke();
+  }
+}
+
+function banner(text, y) {
+  font(700, 16); const lines = text.split('\n');
+  const w = Math.max(...lines.map(l => ctx.measureText(l).width)) + 28, h = lines.length * 22 + 16, x = (KAI_X + W) / 2;
+  rr(x - w / 2, y - h / 2, w, h, 10); ctx.fillStyle = 'rgba(38,30,25,.88)'; ctx.fill();
+  ctx.fillStyle = C.off; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  lines.forEach((l, i) => ctx.fillText(l, x, y - (lines.length - 1) * 11 + i * 22));
+}
+
+function drawHints(t) {
+  const g = game;
+  if (g.hint === 'drag') {
+    const s = g.ships.find(s => s.state === 'idle' || s.state === 'entering');
+    if (s) {
+      const b = BERTHS.find(b => b.type === s.T.key && !b.ship);
+      ctx.strokeStyle = `rgba(245,243,241,${.5 + .5 * Math.sin(t * 5)})`; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.T.len / 2 + 10, 0, 7); ctx.stroke();
+      if (b && s.state === 'idle') {
+        const k = (t * .6) % 1, tx = KAI_X + 40, ty = b.cy;
+        const mx = 240, my = (s.y + ty) / 2 + 60;
+        const qx = (1 - k) * (1 - k) * s.x + 2 * (1 - k) * k * mx + k * k * tx, qy = (1 - k) * (1 - k) * s.y + 2 * (1 - k) * k * my + k * k * ty;
+        ctx.strokeStyle = 'rgba(245,243,241,.35)'; ctx.setLineDash([6, 8]); ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.quadraticCurveTo(mx, my, tx, ty); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = C.off; ctx.beginPath(); ctx.arc(qx, qy, 12, 0, 7); ctx.fill();
+        ctx.fillStyle = C.black; ctx.beginPath(); ctx.arc(qx, qy, 5, 0, 7); ctx.fill();
+      }
+    }
+    banner('Dra en strek fra skipet\ntil kaien med samme farge', 700);
+  } else if (g.hint === 'tap') {
+    const s = g.ships.find(s => s.state === 'docked' && !s.connected);
+    if (s) {
+      ctx.strokeStyle = `rgba(249,178,51,${.5 + .5 * Math.sin(t * 6)})`; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.T.len / 2 + 8, 0, 7); ctx.stroke();
+    }
+    banner('Trykk på skipet for å\nkoble til landstrøm', 700);
+  } else if (g.hint === 'trafo') {
+    banner('Bra! Røyken stoppet.\nTrafoen tåler 10 MW totalt.', 700);
+  }
+}
+
+function drawHUD(t) {
+  const g = game;
+  ctx.fillStyle = C.black; ctx.fillRect(0, 0, W, TOP_Y);
+  const left = Math.max(0, ROUND - g.t), m = Math.floor(left / 60), sec = Math.floor(left % 60);
+  font(800, 26); ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  ctx.fillStyle = left < 10 && Math.sin(t * 10) > 0 ? C.orange : C.off;
+  ctx.fillText(`${m}:${String(sec).padStart(2, '0')}`, 16, 24);
+  const score = Math.max(0, Math.round(g.co2) + g.bonus);
+  ctx.textAlign = 'right'; ctx.fillStyle = C.off; ctx.fillText(score, W - 16, 24);
+  const sw = ctx.measureText(String(score)).width;
+  font(700, 10); ctx.fillStyle = C.yellow; ctx.fillText('POENG', W - 24 - sw, 26);
+  ctx.textAlign = 'center'; font(600, 12); ctx.fillStyle = C.mint;
+  ctx.fillText(Math.round(g.co2) + ' kg CO₂ spart', W / 2, 24);
+  // Byluft
+  const bx = 16, by = 42, bw = 240, bh = 20;
+  rr(bx, by, bw, bh, 5); ctx.fillStyle = '#3d342e'; ctx.fill();
+  const af = g.air / 100; rr(bx, by, Math.max(10, bw * af), bh, 5);
+  ctx.fillStyle = af > .5 ? C.green : af > .25 ? C.yellow : C.orange; ctx.fill();
+  font(800, 11); ctx.fillStyle = C.black; ctx.textAlign = 'left'; ctx.fillText('BYLUFT', bx + 8, by + bh / 2 + 1);
+  // Trafo
+  const tx = 276, tw = 248, load = currentLoad();
+  rr(tx, by, tw, bh, 5); ctx.fillStyle = '#3d342e'; ctx.fill();
+  let x = tx;
+  for (const s of g.ships) if (s.state === 'docked' && s.connected) {
+    const w = tw * shipLoad(s) / TRAFO; ctx.fillStyle = s.T.tag; ctx.fillRect(x, by, w - 1, bh); x += w;
+  }
+  if (g.trafoFlash > 0) { rr(tx, by, tw, bh, 5); ctx.fillStyle = `rgba(235,92,59,${g.trafoFlash})`; ctx.fill(); }
+  font(800, 11); ctx.fillStyle = C.off; ctx.textAlign = 'right';
+  ctx.lineWidth = 3; ctx.strokeStyle = C.black; ctx.strokeText(`TRAFO ${load % 1 ? load.toFixed(1) : load} / ${TRAFO} MW`, tx + tw - 8, by + bh / 2 + 1);
+  ctx.fillText(`TRAFO ${load % 1 ? load.toFixed(1) : load} / ${TRAFO} MW`, tx + tw - 8, by + bh / 2 + 1);
+}
+
+function render(t) {
+  ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  if (game && game.shake > 0) ctx.translate((Math.random() - .5) * game.shake, (Math.random() - .5) * game.shake);
+  drawBackground(t);
+  if (game) {
+    for (const s of game.ships) if (s.path.length && s.state === 'sailing') drawPath(s, s.path, false);
+    for (const s of game.ships) drawCable(s);
+    for (const s of game.ships) drawShip(s);
+    // Røyk og gnister
+    for (const p of game.parts) {
+      const a = 1 - p.life / p.max;
+      ctx.fillStyle = p.kind === 'smoke' ? `rgba(55,50,46,${a * .55})` : `rgba(249,178,51,${a})`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill();
+    }
+    // Dis over byen
+    const haze = (1 - game.air / 100) * .65;
+    if (haze > .01) { ctx.fillStyle = `rgba(70,64,58,${haze})`; ctx.fillRect(0, TOP_Y, KAI_X - 4, H); }
+    for (const s of game.ships) drawShipUI(s, t);
+    if (drag && drag.moved && game.ships.includes(drag.ship) && drag.ship.state !== 'docked') drawPath(drag.ship, drag.pts, true);
+    drawHints(t);
+    for (const f of game.floats) {
+      const a = Math.min(1, 2 * (1 - f.t / f.dur));
+      font(800, f.size); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.lineWidth = 4; ctx.strokeStyle = `rgba(38,30,25,${a * .8})`; ctx.strokeText(f.text, f.x, f.y);
+      ctx.globalAlpha = a; ctx.fillStyle = f.color; ctx.fillText(f.text, f.x, f.y); ctx.globalAlpha = 1;
+    }
+  }
+  ctx.restore();
+  if (game) drawHUD(t);
+  else { ctx.fillStyle = C.black; ctx.fillRect(0, 0, W, TOP_Y); }
+}
+
+// ---------- Skjermer og poengliste ----------
+const HS_KEY = 'kaikaos_hs';
+function loadHS() { try { return JSON.parse(localStorage.getItem(HS_KEY) || '[]'); } catch (e) { return []; } }
+function saveHS(l) { try { localStorage.setItem(HS_KEY, JSON.stringify(l)); } catch (e) {} }
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function renderHS(el, n, meId) {
+  const l = loadHS().slice(0, n);
+  el.innerHTML = l.length ? '<h3>TOPPLISTE</h3><ol>' + l.map((e, i) =>
+    `<li class="${e.id === meId ? 'me' : ''}"><span>${i + 1}. ${esc(e.name)}</span><span class="p">${e.score}</span></li>`).join('') + '</ol>' : '';
+}
+let lastResult = null;
+function finalScore() { return Math.max(0, Math.round(game.co2) + game.bonus); }
+function showEnd() {
+  const sc = finalScore(), co2 = Math.round(game.co2);
+  lastResult = {score:sc, co2, id:Date.now(), saved:false};
+  $('endReason').textContent = game.endReason === 'air' ? 'BYEN BLE KVALT I EKSOS' : 'TIDEN ER UTE';
+  $('endScore').textContent = sc;
+  $('stCo2').textContent = co2.toLocaleString('nb-NO');
+  $('stCars').textContent = Math.round(co2 / KG_PER_TRIP).toLocaleString('nb-NO');
+  $('fact').textContent = FACTS[Math.random() * FACTS.length | 0];
+  $('name').value = ''; $('nameForm').classList.remove('hidden');
+  renderHS($('hsEnd'), 8);
+  $('btnShare').classList.toggle('hidden', !navigator.share && !navigator.clipboard);
+  $('end').classList.remove('hidden');
+  lastInput = performance.now();
+}
+function showStart() {
+  mode = 'start'; game = null; drag = null;
+  $('end').classList.add('hidden'); $('start').classList.remove('hidden');
+  renderHS($('hsStart'), 5);
+}
+function startGame() {
+  snd('dock');
+  newGame(); mode = 'play';
+  $('start').classList.add('hidden'); $('end').classList.add('hidden');
+}
+$('btnStart').addEventListener('click', startGame);
+$('btnAgain').addEventListener('click', startGame);
+$('nameForm').addEventListener('submit', e => {
+  e.preventDefault();
+  if (!lastResult || lastResult.saved) return;
+  const name = $('name').value.trim().slice(0, 12) || 'Anonym';
+  const l = loadHS(); l.push({name, score:lastResult.score, id:lastResult.id});
+  l.sort((a, b) => b.score - a.score); saveHS(l.slice(0, 50));
+  lastResult.saved = true; $('nameForm').classList.add('hidden');
+  $('name').blur();
+  renderHS($('hsEnd'), 8, lastResult.id);
+});
+$('btnShare').addEventListener('click', async () => {
+  if (!lastResult) return;
+  const text = `Jeg sparte ${lastResult.co2} kg CO₂ med landstrøm i Kai-kaos og fikk ${lastResult.score} poeng! Klarer du mer?`;
+  try {
+    if (navigator.share) await navigator.share({title:'Kai-kaos', text, url:location.href});
+    else { await navigator.clipboard.writeText(text + ' ' + location.href); $('btnShare').textContent = 'Kopiert!'; setTimeout(() => $('btnShare').textContent = 'Del', 1500); }
+  } catch (e) {}
+});
+['pointerdown', 'keydown'].forEach(ev => addEventListener(ev, () => lastInput = performance.now(), true));
+renderHS($('hsStart'), 5);
+
+// ---------- Hovedløkke ----------
+let prev = performance.now();
+function frame(now) {
+  const dt = Math.min(.05, (now - prev) / 1000); prev = now;
+  if (mode === 'play') update(dt);
+  if (mode === 'end' && now - lastInput > 45000) showStart();   // messemodus: tilbake til start
+  render(now / 1000);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+// Testkrok
+window.__kai = {get game() { return game; }, BERTHS, startGame, toggleConn, update};
+</script>
+</body>
+</html>
